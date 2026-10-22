@@ -32,7 +32,7 @@ void main() {
     final wrongAnswer = puzzle.options.firstWhere((option) => !puzzle.accepts(option));
 
     await tester.tap(find.text(wrongAnswer));
-    await tester.ensureVisible(find.text('Cevabı kontrol et'));
+    await tester.dragUntilVisible(find.text('Cevabı kontrol et'), find.byType(CustomScrollView), const Offset(0, -400));
     await tester.tap(find.text('Cevabı kontrol et'));
     await tester.pumpAndSettle();
 
@@ -46,7 +46,7 @@ void main() {
     final correctAnswer = puzzle.options.firstWhere(puzzle.accepts);
 
     await tester.tap(find.text(correctAnswer));
-    await tester.ensureVisible(find.text('Cevabı kontrol et'));
+    await tester.dragUntilVisible(find.text('Cevabı kontrol et'), find.byType(CustomScrollView), const Offset(0, -400));
     await tester.tap(find.text('Cevabı kontrol et'));
     await tester.pumpAndSettle();
 
