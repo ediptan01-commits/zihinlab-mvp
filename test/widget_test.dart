@@ -12,6 +12,10 @@ void main() {
   });
 
   Future<void> openGame(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const ZihinLabApp());
     await tester.pumpAndSettle();
   }
@@ -32,7 +36,6 @@ void main() {
     final wrongAnswer = puzzle.options.firstWhere((option) => !puzzle.accepts(option));
 
     await tester.tap(find.text(wrongAnswer));
-    await tester.dragUntilVisible(find.text('Cevabı kontrol et'), find.byType(CustomScrollView), const Offset(0, -400));
     await tester.tap(find.text('Cevabı kontrol et'));
     await tester.pumpAndSettle();
 
@@ -46,7 +49,6 @@ void main() {
     final correctAnswer = puzzle.options.firstWhere(puzzle.accepts);
 
     await tester.tap(find.text(correctAnswer));
-    await tester.dragUntilVisible(find.text('Cevabı kontrol et'), find.byType(CustomScrollView), const Offset(0, -400));
     await tester.tap(find.text('Cevabı kontrol et'));
     await tester.pumpAndSettle();
 
