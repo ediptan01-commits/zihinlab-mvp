@@ -20,6 +20,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> chooseAnswer(WidgetTester tester, String answer) async {
+    final optionCard = find.ancestor(
+      of: find.text(answer),
+      matching: find.byType(InkWell),
+    ).first;
+    await tester.tap(optionCard);
+    await tester.pump();
+
+    final checkButton = find.widgetWithText(FilledButton, 'Cevabı kontrol et');
+    expect(tester.widget<FilledButton>(checkButton).onPressed, isNotNull);
+    await tester.tap(checkButton);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('puzzles show selectable answers instead of a text field', (tester) async {
     await openGame(tester);
 
@@ -35,9 +49,7 @@ void main() {
     final puzzle = puzzleBank.first;
     final wrongAnswer = puzzle.options.firstWhere((option) => !puzzle.accepts(option));
 
-    await tester.tap(find.text(wrongAnswer));
-    await tester.tap(find.text('Cevabı kontrol et'));
-    await tester.pumpAndSettle();
+    await chooseAnswer(tester, wrongAnswer);
 
     expect(find.text('Henüz değil, tekrar düşün!'), findsOneWidget);
     expect(find.text(puzzle.explanation), findsOneWidget);
@@ -48,9 +60,7 @@ void main() {
     final puzzle = puzzleBank.first;
     final correctAnswer = puzzle.options.firstWhere(puzzle.accepts);
 
-    await tester.tap(find.text(correctAnswer));
-    await tester.tap(find.text('Cevabı kontrol et'));
-    await tester.pumpAndSettle();
+    await chooseAnswer(tester, correctAnswer);
 
     expect(find.textContaining('Harika, doğru cevap!'), findsOneWidget);
     expect(find.textContaining('100 puan'), findsOneWidget);
