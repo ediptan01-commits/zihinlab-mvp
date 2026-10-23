@@ -2,31 +2,31 @@ enum PuzzleMode { logic, moves, visual, mystery, memory, daily }
 
 extension PuzzleModeInfo on PuzzleMode {
   String get title => switch (this) {
-        PuzzleMode.logic => 'Mantık dedektifi',
-        PuzzleMode.moves => 'Hamleni hesapla',
-        PuzzleMode.visual => 'Görsel zekâ',
-        PuzzleMode.mystery => 'Gizem odası',
-        PuzzleMode.memory => 'Hafıza ve dikkat',
-        PuzzleMode.daily => 'Günün meydan okuması',
-      };
+    PuzzleMode.logic => 'Mantık dedektifi',
+    PuzzleMode.moves => 'Hamleni hesapla',
+    PuzzleMode.visual => 'Görsel zekâ',
+    PuzzleMode.mystery => 'Gizem odası',
+    PuzzleMode.memory => 'Hafıza ve dikkat',
+    PuzzleMode.daily => 'Günün meydan okuması',
+  };
 
   String get shortTitle => switch (this) {
-        PuzzleMode.logic => 'Mantık',
-        PuzzleMode.moves => 'Hamle',
-        PuzzleMode.visual => 'Görsel',
-        PuzzleMode.mystery => 'Gizem',
-        PuzzleMode.memory => 'Hafıza',
-        PuzzleMode.daily => 'Günlük',
-      };
+    PuzzleMode.logic => 'Mantık',
+    PuzzleMode.moves => 'Hamle',
+    PuzzleMode.visual => 'Görsel',
+    PuzzleMode.mystery => 'Gizem',
+    PuzzleMode.memory => 'Hafıza',
+    PuzzleMode.daily => 'Günlük',
+  };
 
   String get description => switch (this) {
-        PuzzleMode.logic => 'Kuralları bul, çıkarım yap.',
-        PuzzleMode.moves => 'Taşları hedefe az hamlede taşı.',
-        PuzzleMode.visual => 'Şekillerdeki değişimi keşfet.',
-        PuzzleMode.mystery => 'İpuçlarını birleştir, olayı çöz.',
-        PuzzleMode.memory => 'Kısa süre gördüğün sırayı hatırla.',
-        PuzzleMode.daily => 'Her gün yeni bir meydan okuma.',
-      };
+    PuzzleMode.logic => 'Kuralları bul, çıkarım yap.',
+    PuzzleMode.moves => 'Taşları hedefe az hamlede taşı.',
+    PuzzleMode.visual => 'Şekilleri karşılaştır, farkları bul.',
+    PuzzleMode.mystery => 'İpuçlarını birleştir, olayı çöz.',
+    PuzzleMode.memory => 'Kısa süre gördüğün sırayı hatırla.',
+    PuzzleMode.daily => 'Her gün yeni bir meydan okuma.',
+  };
 }
 
 class Puzzle {
@@ -45,13 +45,19 @@ class Puzzle {
     this.slideStart = const [],
     this.moveLimit = 0,
     this.memorySequence = const [],
+    this.differenceLeft = const [],
+    this.differenceRight = const [],
+    this.differencePositions = const [],
   });
 
   final String id, title, question, explanation, skill;
   final PuzzleMode mode;
   final List<String> options, answers, hints, memorySequence;
   final List<int> slideStart;
+  final List<int> differenceLeft, differenceRight, differencePositions;
   final int points, difficulty, moveLimit;
+
+  bool get isDifferencePuzzle => differencePositions.isNotEmpty;
 
   String normalize(String value) => value
       .toLowerCase()
@@ -75,4 +81,3 @@ class Puzzle {
     return answers.any((answer) => normalize(answer) == normalized);
   }
 }
-
