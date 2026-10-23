@@ -32,6 +32,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _memoryVisible = false;
   bool _complete = false;
   bool _alreadySolved = false;
+  final Set<int> _differenceFound = {};
   Timer? _memoryTimer;
 
   Puzzle get puzzle => _puzzle!;
@@ -81,6 +82,9 @@ class _GameScreenState extends State<GameScreen> {
         slideStart: chosen.slideStart,
         moveLimit: chosen.moveLimit,
         memorySequence: chosen.memorySequence,
+        differenceLeft: chosen.differenceLeft,
+        differenceRight: chosen.differenceRight,
+        differencePositions: chosen.differencePositions,
       );
     }
 
@@ -118,6 +122,7 @@ class _GameScreenState extends State<GameScreen> {
     _hintsUsed = 0;
     _wrongAnswers = 0;
     _selectedAnswer = null;
+    _differenceFound.clear();
     _complete = false;
     _alreadySolved = _progress.solved.containsKey(next.id);
     _memoryVisible = next.mode == PuzzleMode.memory && !_alreadySolved;
@@ -146,6 +151,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _submitAnswer() async {
+    if (puzzle.isDifferencePuzzle) {
+      if (_differenceFound.length != puzzle.differencePositions.length) return;
+      await _finishPuzzle(_earnedStars());
+      return;
+    }
     final answer = _selectedAnswer;
     if (answer == null || _complete || _memoryVisible) return;
     if (puzzle.accepts(answer)) {
@@ -223,6 +233,27 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  Future<void> _tapDifference(int index) async {
+    if (_complete || _differenceFound.contains(index)) return;
+    if (puzzle.differencePositions.contains(index)) {
+      setState(() => _differenceFound.add(index));
+      return;
+    }
+
+    final updated = _progress.recordWrong(
+      puzzle.id,
+      puzzle.mode,
+      DateTime.now(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _wrongAnswers++;
+      if (_hintsUsed < 2) _hintsUsed++;
+      _progress = updated;
+    });
+    await _store.save(updated);
+  }
+
   bool _isGoal(List<int> board) {
     if (board.length != 9) return false;
     for (var i = 0; i < 8; i++) {
@@ -242,6 +273,10 @@ class _GameScreenState extends State<GameScreen> {
                   item.mode == _mode && _progress.solved.containsKey(item.id),
             )
             .length;
+
+  int get _modePuzzleCount => _mode == PuzzleMode.daily
+      ? 1
+      : puzzleBank.where((item) => item.mode == _mode).length;
 
   @override
   Widget build(BuildContext context) {
@@ -313,7 +348,10 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(height: 14),
                 if (puzzle.mode == PuzzleMode.memory) _memoryPanel(),
                 if (puzzle.mode == PuzzleMode.moves) _slidingBoard(),
-                if (puzzle.mode != PuzzleMode.moves && !_memoryVisible)
+                if (puzzle.isDifferencePuzzle) _differencePanel(),
+                if (puzzle.mode != PuzzleMode.moves &&
+                    !puzzle.isDifferencePuzzle &&
+                    !_memoryVisible)
                   _answerPanel(),
                 if (!_complete && !_memoryVisible) _actionRow(),
                 if (_hintsUsed > 0) _hintPanel(),
@@ -549,7 +587,9 @@ class _GameScreenState extends State<GameScreen> {
             : _mode.title +
                   '  ·  ' +
                   _modeSolvedCount.toString() +
-                  ' / 5 tamamlandı',
+                  ' / ' +
+                  _modePuzzleCount.toString() +
+                  ' tamamlandı',
         textAlign: TextAlign.center,
         style: const TextStyle(
           color: Color(0xFF8793AA),
@@ -982,6 +1022,189 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  Widget _differencePanel() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+        decoration: BoxDecoration(
+          color: const Color(0xFF131B32),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cyan.withValues(alpha: .18)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.touch_app_rounded, color: cyan, size: 18),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Farklı simgeleri bulup işaretle',
+                style: TextStyle(
+                  color: Color(0xFFDCE7F8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Text(
+              '${_differenceFound.length} / ${puzzle.differencePositions.length}',
+              style: const TextStyle(
+                color: cyan,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 9),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _differenceSceneCard('KART A', 'a', puzzle.differenceLeft),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _differenceSceneCard('KART B', 'b', puzzle.differenceRight),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Text(
+        _differenceFound.isEmpty
+            ? 'Bir karttaki kareye dokun; bulunan fark iki kartta da işaretlenir.'
+            : '${_differenceFound.length} / ${puzzle.differencePositions.length} fark bulundu',
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Color(0xFF9BA7BE),
+          fontSize: 10,
+          height: 1.4,
+        ),
+      ),
+    ],
+  );
+
+  Widget _differenceSceneCard(String title, String side, List<int> symbols) =>
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF18233D), Color(0xFF11192E)],
+          ),
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: const Color(0xFF2E3E5A)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Color(0xFF9BA9C4),
+                fontSize: 9,
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: symbols.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 5,
+                mainAxisSpacing: 5,
+                childAspectRatio: 1,
+              ),
+              itemBuilder: (context, index) {
+                final found = _differenceFound.contains(index);
+                return Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    key: ValueKey('difference-$side-$index'),
+                    onTap:
+                        _complete ||
+                            _differenceFound.length ==
+                                puzzle.differencePositions.length
+                        ? null
+                        : () => _tapDifference(index),
+                    borderRadius: BorderRadius.circular(10),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 170),
+                      decoration: BoxDecoration(
+                        color: found
+                            ? const Color(0xFF65E3B0).withValues(alpha: .16)
+                            : const Color(0xFF0D1427),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: found
+                              ? const Color(0xFF65E3B0).withValues(alpha: .85)
+                              : Colors.white.withValues(alpha: .06),
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Icon(
+                              _differenceIcon(symbols[index]),
+                              color: _differenceColor(index),
+                              size: 20,
+                            ),
+                          ),
+                          if (found)
+                            const Positioned(
+                              top: 2,
+                              right: 2,
+                              child: Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFF65E3B0),
+                                size: 11,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      );
+
+  IconData _differenceIcon(int symbol) => const [
+    Icons.wb_sunny_rounded,
+    Icons.cloud_rounded,
+    Icons.umbrella_rounded,
+    Icons.star_rounded,
+    Icons.favorite_rounded,
+    Icons.spa_rounded,
+    Icons.local_florist_rounded,
+    Icons.coffee_rounded,
+    Icons.home_rounded,
+    Icons.pets_rounded,
+    Icons.flight_rounded,
+    Icons.music_note_rounded,
+    Icons.lightbulb_rounded,
+    Icons.sailing_rounded,
+  ][symbol];
+
+  Color _differenceColor(int index) => const [
+    Color(0xFFFFD166),
+    Color(0xFF6AD8FF),
+    Color(0xFFFF99B4),
+    Color(0xFFB8A0FF),
+    Color(0xFFFFA768),
+    Color(0xFF69E6BC),
+    Color(0xFFFF8A8A),
+    Color(0xFF8EA5FF),
+    Color(0xFFC4A9FF),
+  ][index];
+
   Widget _answerPanel() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -1201,9 +1424,18 @@ class _GameScreenState extends State<GameScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: FilledButton.icon(
-              onPressed: _selectedAnswer == null ? null : _submitAnswer,
+              onPressed: puzzle.isDifferencePuzzle
+                  ? (_differenceFound.length ==
+                            puzzle.differencePositions.length
+                        ? _submitAnswer
+                        : null)
+                  : (_selectedAnswer == null ? null : _submitAnswer),
               icon: const Icon(Icons.check_rounded, size: 18),
-              label: const Text('Kontrol et'),
+              label: Text(
+                puzzle.isDifferencePuzzle
+                    ? 'Farkları kontrol et'
+                    : 'Kontrol et',
+              ),
               style: FilledButton.styleFrom(
                 backgroundColor: cyan,
                 foregroundColor: ink,
@@ -1292,7 +1524,7 @@ class _GameScreenState extends State<GameScreen> {
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: const Color(0xFFFFA673).withValues(alpha: .26)),
     ),
-    child: const Row(
+    child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
@@ -1303,8 +1535,10 @@ class _GameScreenState extends State<GameScreen> {
         SizedBox(width: 10),
         Expanded(
           child: Text(
-            'Henüz değil; doğru cevabı açıklamadan küçük bir ipucu verdim. Bir seçenek daha dene.',
-            style: TextStyle(
+            puzzle.isDifferencePuzzle
+                ? 'Bu kare aynı görünüyor. İpucuna bakıp kartları yeniden karşılaştır.'
+                : 'Henüz değil; doğru cevabı açıklamadan küçük bir ipucu verdim. Bir seçenek daha dene.',
+            style: const TextStyle(
               color: Color(0xFFFFC28C),
               fontSize: 12,
               height: 1.45,
