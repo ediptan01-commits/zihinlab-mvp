@@ -929,7 +929,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _memoryPanel() {
     final shown = _memoryVisible;
     return Container(
-      margin: const EdgeInsets.only(top: -4, bottom: 15),
+      margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(18),
       width: double.infinity,
       decoration: BoxDecoration(
