@@ -104,4 +104,36 @@ void main() {
     expect(find.text('SIRA GİZLENDİ'), findsOneWidget);
     expect(find.text('BİR CEVAP SEÇ'), findsOneWidget);
   });
+
+  testWidgets('difference cards mark all three changes before checking', (
+    tester,
+  ) async {
+    await openGame(tester);
+    await tester.tap(find.text('Görsel'));
+    await tester.pumpAndSettle();
+
+    final puzzle = puzzleBank.firstWhere((item) => item.isDifferencePuzzle);
+    expect(find.text(puzzle.title), findsOneWidget);
+    expect(find.text('KART A'), findsOneWidget);
+    expect(find.text('KART B'), findsOneWidget);
+
+    for (final position in puzzle.differencePositions) {
+      final tile = find.byKey(ValueKey('difference-a-$position'));
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('3 / 3 fark bulundu'), findsOneWidget);
+    final checkButton = find.widgetWithText(
+      FilledButton,
+      'Farkları kontrol et',
+    );
+    expect(tester.widget<FilledButton>(checkButton).onPressed, isNotNull);
+    await tester.ensureVisible(checkButton);
+    await tester.tap(checkButton);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Harika, doğru cevap!'), findsOneWidget);
+    expect(find.text('Sonraki bulmaca'), findsOneWidget);
+  });
 }
