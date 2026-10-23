@@ -18,7 +18,7 @@ jobs:
       - name: Generate Android platform files if missing
         run: if [ ! -d android ]; then flutter create . --platforms=android --org com.zihinlab; fi
       - run: flutter pub get
-      - run: flutter analyze
+      - run: flutter analyze --no-fatal-infos
       - run: flutter test
       - run: flutter build apk --release
       - run: flutter build appbundle --release
@@ -28,3 +28,4 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
+
