@@ -63,7 +63,7 @@ void main() {
     await chooseAnswer(tester, correctAnswer);
 
     expect(find.textContaining('Harika, doğru cevap!'), findsOneWidget);
-    expect(find.textContaining('100 puan'), findsOneWidget);
+    expect(find.text('100 puan'), findsOneWidget);
     expect(find.text('Sonraki seviye'), findsOneWidget);
   });
 }
