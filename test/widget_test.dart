@@ -13,7 +13,7 @@ void main() {
 
   Future<void> openGame(WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1400);
-    tester.view.devicePixelRatio = 1.0;
+    tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const ZihinLabApp());
@@ -27,43 +27,65 @@ void main() {
     ).first;
     await tester.tap(optionCard);
     await tester.pump();
-
-    final checkButton = find.widgetWithText(FilledButton, 'Cevabı kontrol et');
+    final checkButton = find.widgetWithText(FilledButton, 'Kontrol et');
     expect(tester.widget<FilledButton>(checkButton).onPressed, isNotNull);
     await tester.tap(checkButton);
     await tester.pumpAndSettle();
   }
 
-  testWidgets('puzzles show selectable answers instead of a text field', (tester) async {
+  testWidgets('first puzzle has selectable answers and a Turkish mode picker', (tester) async {
     await openGame(tester);
-
     expect(find.text('ZihinLab'), findsOneWidget);
-    expect(find.text('Sayı dizisi'), findsOneWidget);
+    expect(find.text('Sayı merdiveni'), findsOneWidget);
     expect(find.text('BİR CEVAP SEÇ'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
-    expect(find.text(puzzleBank.first.options.first), findsOneWidget);
+    expect(find.text('Mantık'), findsOneWidget);
+    expect(find.text('Hamle'), findsOneWidget);
+    expect(find.text('Görsel'), findsOneWidget);
+    expect(find.text('Gizem'), findsOneWidget);
+    expect(find.text('Hafıza'), findsOneWidget);
+    expect(find.text('Günlük'), findsOneWidget);
   });
 
-  testWidgets('wrong choice shows feedback and the explanation', (tester) async {
+  testWidgets('wrong choice reveals a hint without giving the answer away', (tester) async {
     await openGame(tester);
     final puzzle = puzzleBank.first;
     final wrongAnswer = puzzle.options.firstWhere((option) => !puzzle.accepts(option));
-
     await chooseAnswer(tester, wrongAnswer);
-
-    expect(find.text('Henüz değil, tekrar düşün!'), findsOneWidget);
-    expect(find.text(puzzle.explanation), findsOneWidget);
+    expect(find.textContaining('Henüz değil'), findsOneWidget);
+    expect(find.textContaining('Küçük ipucu'), findsOneWidget);
+    expect(find.text(puzzle.explanation), findsNothing);
   });
 
-  testWidgets('correct choice awards points and unlocks the next puzzle', (tester) async {
+  testWidgets('correct choice awards stars and explains the skill', (tester) async {
     await openGame(tester);
     final puzzle = puzzleBank.first;
-    final correctAnswer = puzzle.options.firstWhere(puzzle.accepts);
-
-    await chooseAnswer(tester, correctAnswer);
-
+    await chooseAnswer(tester, puzzle.options.firstWhere(puzzle.accepts));
     expect(find.textContaining('Harika, doğru cevap!'), findsOneWidget);
-    expect(find.text('100 puan'), findsOneWidget);
-    expect(find.text('Sonraki seviye'), findsOneWidget);
+    expect(find.text('Bu turda çalıştırdığın beceri: ' + puzzle.skill), findsOneWidget);
+    expect(find.text('Sonraki bulmaca'), findsOneWidget);
+  });
+
+  testWidgets('sliding mode reaches the goal by moving adjacent tiles', (tester) async {
+    await openGame(tester);
+    await tester.tap(find.text('Hamle'));
+    await tester.pumpAndSettle();
+    expect(find.text('İki hamlede hedef'), findsOneWidget);
+    await tester.tap(find.text('5'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('6'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Harika, doğru cevap!'), findsOneWidget);
+  });
+
+  testWidgets('memory mode hides the sequence before answer selection', (tester) async {
+    await openGame(tester);
+    await tester.tap(find.text('Hafıza'));
+    await tester.pumpAndSettle();
+    expect(find.text('SIRAYI İNCELE'), findsOneWidget);
+    await tester.tap(find.text('Hazırım, gizle'));
+    await tester.pumpAndSettle();
+    expect(find.text('SIRA GİZLENDİ'), findsOneWidget);
+    expect(find.text('BİR CEVAP SEÇ'), findsOneWidget);
   });
 }
